@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Trọng số DINOv3 (tải riêng, xem README) và checkpoint model
+model.safetensors
+*.pth
+*.pt
+
+# Dữ liệu và kết quả chạy
+data/
+runs/
+saved_models/
+video_features/
+logs/
+*.pkl
+*.npy
+UAH-DRIVESET-v1/
