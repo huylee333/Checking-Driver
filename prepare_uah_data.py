@@ -29,9 +29,9 @@ Các bước:
 
 Ví dụ:
   # Chỉ kiểm tra, không ghi pickle (nên chạy trước và đọc report):
-  python prepare_uah_data.py --uah_root ../UAH-DRIVESET-v1 --out_dir ../data --check_only
+  python prepare_uah_data.py --uah_root ../UAH-DRIVESET-v1 --out_dir data --check_only
   # Tạo dữ liệu:
-  python prepare_uah_data.py --uah_root ../UAH-DRIVESET-v1 --out_dir ../data --max_windows_per_trip 8
+  python prepare_uah_data.py --uah_root ../UAH-DRIVESET-v1 --out_dir data --max_windows_per_trip 40
 """
 
 import argparse
@@ -366,7 +366,7 @@ def extract_windows(mp4, frame_times, fps, windows, offset, acc, args):
 def main():
     p = argparse.ArgumentParser(description='Làm sạch UAH-DriveSet và tạo pickle cho DuST-DINOv3')
     p.add_argument('--uah_root', type=str, default='../UAH-DRIVESET-v1')
-    p.add_argument('--out_dir', type=str, default='../data')
+    p.add_argument('--out_dir', type=str, default='data')
     p.add_argument('--check_only', action='store_true', help='chỉ kiểm tra + report, không ghi pickle')
     p.add_argument('--val_drivers', type=str, default='D6', help='tài xế dùng cho val, cách nhau bởi dấu phẩy')
     p.add_argument('--exclude_drivers', type=str, default='', help='tài xế bỏ hẳn (vd. để làm test sau này)')
@@ -377,7 +377,7 @@ def main():
     p.add_argument('--size', type=int, default=224)
     p.add_argument('--resize_mode', choices=['center_crop', 'squash'], default='center_crop')
     p.add_argument('--stride_sec', type=float, default=5.0, help='bước giữa các cửa sổ ứng viên (5.0 = không chồng lấn)')
-    p.add_argument('--max_windows_per_trip', type=int, default=8,
+    p.add_argument('--max_windows_per_trip', type=int, default=40,
                    help='số cửa sổ tối đa mỗi chuyến, chọn trải đều. <=0: lấy hết (rất tốn RAM)')
     p.add_argument('--video_dtype', choices=['float16', 'float32'], default='float16')
     p.add_argument('--no_kine_norm', action='store_true', help='không chuẩn hoá z-score kinematic')

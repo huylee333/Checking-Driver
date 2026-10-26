@@ -89,13 +89,13 @@ if __name__ == "__main__":
                         help='Output feature dimension (default: 1024, khớp fusion head)')
 
     # Inputs (mặc định lấy từ thư mục data/ của project gốc)
-    parser.add_argument('--path_video_train', type=str, default='../data/video_train.pkl',
+    parser.add_argument('--path_video_train', type=str, default='./data/video_train.pkl',
                         help='Path to the video training data')
-    parser.add_argument('--path_video_val', type=str, default='../data/video_val.pkl',
+    parser.add_argument('--path_video_val', type=str, default='./data/video_val.pkl',
                         help='Path to the video validation data')
-    parser.add_argument('--path_label_train', type=str, default='../data/label_train.pkl',
+    parser.add_argument('--path_label_train', type=str, default='./data/label_train.pkl',
                         help='Path to training label')
-    parser.add_argument('--path_label_val', type=str, default='../data/label_val.pkl',
+    parser.add_argument('--path_label_val', type=str, default='./data/label_val.pkl',
                         help='Path to validation label')
 
     # Outputs

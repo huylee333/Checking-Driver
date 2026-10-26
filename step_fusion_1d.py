@@ -2,7 +2,7 @@
 Stage 2: Train 1D Swin Transformer (giữ nguyên 100% logic từ step_fusion_1d.py gốc)
 
 File này KHÔNG có thay đổi logic so với ../step_fusion_1d.py
-Chỉ điều chỉnh: import path, đường dẫn data mặc định (../data/), tự tạo outpath/logpath.
+Chỉ điều chỉnh: import path, đường dẫn data mặc định (./data/), tự tạo outpath/logpath.
 """
 
 import sys
@@ -85,14 +85,14 @@ if __name__ == "__main__":
                         help='number of channels (default: 3)')
 
     # Inputs
-    parser.add_argument('--path_kine_train', type=str, default='../data/kine_train.pkl',
+    parser.add_argument('--path_kine_train', type=str, default='./data/kine_train.pkl',
                         help='Path to the kine training data')
-    parser.add_argument('--path_kine_val', type=str, default='../data/kine_val.pkl',
+    parser.add_argument('--path_kine_val', type=str, default='./data/kine_val.pkl',
                         help='Path to the kine validation data')
     
-    parser.add_argument('--path_label_train', type=str, default='../data/label_train.pkl',
+    parser.add_argument('--path_label_train', type=str, default='./data/label_train.pkl',
                         help='Path to training label')
-    parser.add_argument('--path_label_val', type=str, default='../data/label_val.pkl',
+    parser.add_argument('--path_label_val', type=str, default='./data/label_val.pkl',
                         help='Path to validation label')
     
     # Outputs

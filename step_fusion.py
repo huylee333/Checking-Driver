@@ -100,9 +100,9 @@ if __name__ == "__main__":
                         help='number of channels (default: 3)')
 
     # Inputs (tương thích đường dẫn khi chạy từ dust_dinov3)
-    parser.add_argument('--path_kine_train', type=str, default='../data/kine_train.pkl',
+    parser.add_argument('--path_kine_train', type=str, default='./data/kine_train.pkl',
                         help='Path to the kine training data')
-    parser.add_argument('--path_kine_val', type=str, default='../data/kine_val.pkl',
+    parser.add_argument('--path_kine_val', type=str, default='./data/kine_val.pkl',
                         help='Path to the kine validation data')
 
     parser.add_argument('--path_vidfeat_train', type=str, default='./video_features/train_3d_features.pkl',
@@ -110,9 +110,9 @@ if __name__ == "__main__":
     parser.add_argument('--path_vidfeat_val', type=str, default='./video_features/val_3d_features.pkl',
                         help='Path to the validation video feature (extracted from DINOv3)')
     
-    parser.add_argument('--path_label_train', type=str, default='../data/label_train.pkl',
+    parser.add_argument('--path_label_train', type=str, default='./data/label_train.pkl',
                         help='Path to training label')
-    parser.add_argument('--path_label_val', type=str, default='../data/label_val.pkl',
+    parser.add_argument('--path_label_val', type=str, default='./data/label_val.pkl',
                         help='Path to validation label')
     
     # Outputs
