@@ -1,0 +1,12 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.12.1
+numpy
+timm==1.0.27
+opencv-python-headless==4.13.0.92
+# Notes (ASCII only on purpose: pip on Windows reads this file with the system code page).
+# - torch 2.12.1: a version supported by ZeroGPU (2.12.0 is rejected). CPU wheels via the extra index above.
+# - numpy is not pinned: the ZeroGPU Space runs Python 3.10 and numpy >= 2.3 needs Python 3.11.
+# - timm: builds the DINOv3 ViT-S/16 architecture for the video branch (weights come from video_3d.pth).
+# - opencv-python-headless: video decoding, optical flow for synchronisation, frame cropping.
+# - fastapi, uvicorn, python-multipart, huggingface_hub: the Gradio Space installs them with gradio.
+#   Outside a Space (Docker, CI, local) install requirements-docker.txt instead of this file.

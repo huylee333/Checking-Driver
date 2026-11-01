@@ -1,0 +1,4 @@
+-r requirements-docker.txt
+pytest
+httpx
+ruff

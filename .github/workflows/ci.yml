@@ -1,0 +1,40 @@
+name: ci
+
+# CI = Continuous Integration: every push to main and every pull request is checked automatically.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push to the same branch/PR cancels the older run that is still going.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: lint and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: web/requirements*.txt
+
+      - name: Install libraries (CPU torch)
+        run: python -m pip install -r web/requirements-dev.txt
+
+      - name: Lint (syntax errors and undefined names only)
+        run: ruff check web
+
+      - name: Run tests (no GPU, no model weights, no network)
+        run: pytest web/tests -q
