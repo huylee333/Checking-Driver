@@ -153,6 +153,6 @@ def test_load_sensors_detects_a_gps_file_passed_as_accelerometer_file():
 
 
 def test_limits_match_the_documented_values():
-    assert inf.MIN_TRIP_SEC == 60
+    assert inf.MIN_TRIP_SEC == 61   # DELIBERATELY WRONG (real value is 60): proves that CI turns red. Do not merge.
     assert inf.MAX_TRIP_SEC == 2 * 3600
     assert inf.KINE_LEN == 51
