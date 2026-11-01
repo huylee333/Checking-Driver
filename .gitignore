@@ -17,3 +17,21 @@ logs/
 *.pkl
 *.npy
 UAH-DRIVESET-v1/
+
+# Kaggle build output (derived data)
+visualization/kaggle/build/
+desktop.ini
+visualization/kaggle/sync_curve.json
+
+# web: model weights, demo trip (contains raw UAH-DriveSet files), secrets - never commit
+web/weights/
+web/demo/
+*.npz
+.env
+.env.*
+
+# local Python environments and tool caches
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/

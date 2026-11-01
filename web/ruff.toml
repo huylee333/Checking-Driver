@@ -1,0 +1,10 @@
+# Lint only for real errors (syntax errors, undefined names), not style.
+[lint]
+select = ["E9", "F63", "F7", "F82"]
+
+[lint.per-file-ignores]
+# The Swin files are copied unchanged from the upstream DuST repository. Their `if __name__ == "__main__"`
+# demo block calls a class (SwinTransformerV2_1D) that does not exist upstream either. It never runs when the
+# web app imports the module, so the check is skipped here instead of editing upstream code.
+"swin1d.py" = ["F821"]
+"swin_fusion.py" = ["F821"]

@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kiểm tra hành vi lái xe</title>
+<style>
+  :root {
+    --bg: #0b1120; --panel: #111827; --line: #1f2937; --soft: #1e293b; --muted: #94a3b8; --text: #f1f5f9;
+    --normal: #22c55e; --aggr: #ef4444; --drowsy: #eab308; --invalid: #475569; --none: #2b3648; --accent: #2563eb;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #020617; color: var(--text); font-family: 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; padding: 12px; }
+  .wrap { max-width: 1480px; margin: 0 auto; background: var(--bg); border: 1px solid var(--soft); border-radius: 12px; padding: 14px 18px; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+            padding-bottom: 12px; border-bottom: 1px solid var(--soft); margin-bottom: 12px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #0ea5e9, #2563eb);
+          display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .title { font-size: 19px; font-weight: 800; }
+  .sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .pill { background: var(--soft); border: 1px solid #334155; border-radius: 18px; padding: 6px 12px; font-size: 13px;
+          display: flex; align-items: center; gap: 8px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--invalid); }
+  .dot.ok { background: var(--normal); box-shadow: 0 0 8px var(--normal); }
+  .dot.bad { background: var(--aggr); }
+
+  .grid { display: grid; grid-template-columns: 340px minmax(0, 1fr) 430px; gap: 12px; align-items: start; }
+  @media (max-width: 1250px) { .grid { grid-template-columns: 1fr; } }
+  .col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .ph { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; font-weight: 700;
+        color: #cbd5e1; text-transform: uppercase; padding-bottom: 8px; margin-bottom: 10px; border-bottom: 1px solid var(--line); }
+  .ph small { text-transform: none; font-weight: 600; color: var(--muted); font-size: 12px; }
+  .hint { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+
+  .demo { background: linear-gradient(135deg, rgba(37,99,235,.18), rgba(14,165,233,.08)); border: 1px solid #1d4ed8; }
+  .demo .name { font-weight: 700; font-size: 14.5px; margin-bottom: 2px; }
+  label.f { display: block; font-size: 12.5px; color: var(--muted); margin: 8px 0 4px; }
+  input[type=text] { width: 100%; background: var(--soft); border: 1px solid #334155; color: var(--text);
+                     border-radius: 6px; padding: 7px 9px; font-size: 14px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .pick { display: block; background: var(--soft); border: 1px dashed #475569; border-radius: 8px; padding: 10px;
+          text-align: center; cursor: pointer; font-size: 13.5px; font-weight: 600; color: #93c5fd; margin-top: 8px; }
+  .pick input { display: none; }
+  .files { font-size: 12.5px; margin-top: 6px; line-height: 1.6; }
+  .files .ok { color: #4ade80; } .files .miss { color: var(--muted); } .files .bad { color: #fca5a5; }
+  details { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
+  details summary { cursor: pointer; color: #93c5fd; }
+  .btn { display: block; width: 100%; border: 0; border-radius: 7px; padding: 10px; font-size: 14.5px; font-weight: 700;
+         cursor: pointer; background: var(--accent); color: #fff; margin-top: 12px; }
+  .btn:disabled { background: #334155; color: var(--muted); cursor: not-allowed; }
+  .btn-sm { background: var(--soft); border: 1px solid #475569; color: #93c5fd; border-radius: 5px; padding: 4px 10px;
+            font-size: 12.5px; font-weight: 600; cursor: pointer; }
+  .btn-sm.on { background: var(--accent); border-color: #3b82f6; color: #fff; }
+  .err { background: rgba(239,68,68,.12); border: 1px solid var(--aggr); color: #fca5a5; border-radius: 7px;
+         padding: 8px 10px; font-size: 13px; margin-top: 10px; }
+  .warn { background: rgba(234,179,8,.10); border: 1px solid var(--drowsy); color: #fde68a; border-radius: 7px;
+          padding: 8px 10px; font-size: 12.5px; margin-top: 8px; line-height: 1.45; }
+  .prog { margin-top: 10px; font-size: 13px; color: #bfdbfe; }
+  .prog .bar { height: 6px; border-radius: 3px; background: var(--soft); overflow: hidden; margin-top: 6px; }
+  .prog .bar div { height: 100%; width: 30%; background: var(--accent); animation: slide 1.2s infinite ease-in-out; }
+  @keyframes slide { 0% { margin-left: -30%; } 100% { margin-left: 100%; } }
+
+  .seg { display: flex; gap: 6px; flex-wrap: wrap; }
+  .seg button { flex: 1; min-width: 110px; background: var(--soft); border: 1px solid #475569; color: #cbd5e1; border-radius: 6px;
+                padding: 7px 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .seg button.on { background: var(--accent); border-color: #3b82f6; color: #fff; }
+  .seg button:disabled { opacity: .4; cursor: not-allowed; }
+
+  .info { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 8px; }
+  .info label { display: block; font-size: 12px; color: #64748b; }
+  .info span { font-size: 14.5px; font-weight: 700; }
+
+  .verdict { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .vbadge { border-radius: 10px; padding: 10px 12px; font-size: 16px; font-weight: 800; white-space: nowrap; }
+  .vtext { font-size: 13.5px; line-height: 1.45; color: #cbd5e1; }
+  .bar-row { margin-bottom: 9px; }
+  .bar-label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .bar-bg { height: 9px; background: var(--soft); border-radius: 5px; overflow: hidden; }
+  .bar-fg { height: 100%; }
+  .note { margin-top: 10px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 8px; line-height: 1.45; }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
+  table.cmp td, table.cmp th { padding: 5px 4px; border-bottom: 1px solid var(--soft); text-align: left; }
+  table.cmp th { color: #64748b; font-size: 11.5px; text-transform: uppercase; }
+
+  .video-box { min-height: 200px; border-radius: 8px; border: 1px solid #334155; background: #020617; display: flex;
+               flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; padding: 10px;
+               user-select: none; }
+  .video-box img { width: 100%; max-width: 576px; border-radius: 6px; pointer-events: none; }
+  .strip { display: flex; gap: 4px; margin-top: 8px; overflow-x: auto; }
+  .strip div { flex: 0 0 auto; cursor: pointer; border: 2px solid transparent; border-radius: 4px; text-align: center;
+               font-size: 10.5px; color: var(--muted); }
+  .strip div.on { border-color: #fff; }
+  .strip img { width: 96px; height: 54px; display: block; border-radius: 3px; pointer-events: none; }
+
+  .timeline { position: relative; height: 26px; border-radius: 6px; overflow: hidden; background: var(--soft);
+              border: 1px solid #334155; margin: 4px 0 6px; cursor: pointer; }
+  .timeline div.seg2 { position: absolute; top: 0; bottom: 0; }
+  .timeline .cursor { position: absolute; top: -2px; bottom: -2px; border: 2px solid #fff; border-radius: 3px;
+                      box-shadow: 0 0 6px #fff; pointer-events: none; }
+  .ticks { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; margin-top: 8px; }
+  .legend i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+
+  table.ev { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  table.ev th { text-align: left; color: #64748b; font-size: 12px; padding: 6px 6px; border-bottom: 1px solid var(--line); text-transform: uppercase; }
+  table.ev td { padding: 8px 6px; border-bottom: 1px solid var(--soft); vertical-align: middle; }
+  tr.sel { background: rgba(37,99,235,.14); }
+  .lvl { border-radius: 10px; padding: 2px 8px; font-size: 12px; font-weight: 700; white-space: nowrap; border: 1px solid; }
+  .lvl.high { color: #f87171; border-color: var(--aggr); background: rgba(239,68,68,.15); }
+  .lvl.medium { color: #facc15; border-color: var(--drowsy); background: rgba(234,179,8,.15); }
+
+  .chart-title { font-size: 13px; font-weight: 700; margin: 4px 0 2px; }
+  .chart-title small { font-weight: 500; color: var(--muted); }
+  svg.chart { width: 100%; height: auto; display: block; margin-bottom: 8px; }
+  .sugg { list-style: none; }
+  .sugg li { background: var(--soft); border-left: 4px solid var(--accent); border-radius: 5px; padding: 8px 10px;
+             margin-bottom: 7px; font-size: 13.5px; line-height: 1.45; }
+  .sugg li.red { border-left-color: var(--aggr); } .sugg li.amber { border-left-color: var(--drowsy); }
+  .sugg li.green { border-left-color: var(--normal); }
+  .empty { color: var(--muted); font-size: 13.5px; padding: 14px 4px; text-align: center; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo">🚗</div>
+      <div>
+        <div class="title">Kiểm tra hành vi lái xe</div>
+        <div class="sub">Công cụ hỗ trợ nhân viên an toàn xem lại chuyến đi của tài xế: lái bình thường, lái hung hăng hay có dấu hiệu buồn ngủ</div>
+      </div>
+    </div>
+    <div class="pill"><div class="dot" id="statusDot"></div><span id="statusText">Đang kết nối…</span><span style="color:var(--muted)">| Bản thử nghiệm</span></div>
+  </div>
+
+  <div class="grid">
+    <!-- ================= CỘT TRÁI ================= -->
+    <div class="col">
+      <div class="panel demo" id="demoPanel" hidden>
+        <div class="ph"><span>Chuyến mẫu có sẵn</span><small>không cần tải file</small></div>
+        <div class="name" id="demoName"></div>
+        <div class="hint" id="demoHint"></div>
+        <button class="btn" id="demoBtn">▶ Phân tích chuyến mẫu</button>
+      </div>
+
+      <div class="panel">
+        <div class="ph"><span>Hoặc tải chuyến đi của bạn</span></div>
+        <div class="row2">
+          <div><label class="f">Mã tài xế</label><input type="text" id="driver" placeholder="VD: TX-0123"></div>
+          <div><label class="f">Biển số xe</label><input type="text" id="plate" placeholder="VD: 30A-123.45"></div>
+        </div>
+        <label class="pick">📁 Chọn thư mục chuyến đi
+          <input type="file" id="pickDir" webkitdirectory multiple>
+        </label>
+        <div class="files">
+          <div class="miss" id="accState">• Cảm biến chuyển động (bắt buộc): chưa có</div>
+          <div class="miss" id="gpsState">• GPS (không bắt buộc): chưa có</div>
+          <div class="miss" id="vidState">• Video hành trình (không bắt buộc): chưa có</div>
+        </div>
+        <details>
+          <summary>Hoặc chọn từng file</summary>
+          <label class="f">Cảm biến chuyển động (RAW_ACCELEROMETERS.txt)</label>
+          <input type="file" id="pickAcc" accept=".txt,.csv">
+          <label class="f">GPS (RAW_GPS.txt)</label>
+          <input type="file" id="pickGps" accept=".txt,.csv">
+          <label class="f">Video hành trình (.mp4)</label>
+          <input type="file" id="pickVid" accept=".mp4,.mov,.avi,.mkv,.m4v">
+        </details>
+        <div class="hint" id="limitHint" style="margin-top:8px"></div>
+        <button class="btn" id="runBtn" disabled>Phân tích chuyến đi</button>
+        <div class="prog" id="progBox" hidden><span id="progText"></span><div class="bar"><div></div></div></div>
+        <div class="err" id="errBox" hidden></div>
+      </div>
+
+      <div class="panel" id="tripPanel" hidden>
+        <div class="ph"><span>Thông tin chuyến</span></div>
+        <div class="hint" id="tripName" style="margin:-4px 0 10px; word-break:break-all"></div>
+        <div class="info">
+          <div><label>Tài xế</label><span id="iDriver">—</span></div>
+          <div><label>Biển số xe</label><span id="iPlate">—</span></div>
+          <div><label>Thời lượng</label><span id="iDur">—</span></div>
+          <div><label>Quãng đường</label><span id="iDist">—</span></div>
+          <div><label>Tốc độ cao nhất</label><span id="iSpeed">—</span></div>
+          <div><label>Thời gian phân tích được</label><span id="iCover">—</span></div>
+        </div>
+        <div class="note" id="refLabel" hidden></div>
+      </div>
+
+      <div class="panel" id="resultPanel" hidden>
+        <div class="ph"><span>Kết luận</span><small id="modelName"></small></div>
+        <div class="verdict">
+          <div class="vbadge" id="vBadge"></div>
+          <div class="vtext" id="vText"></div>
+        </div>
+        <div id="bars"></div>
+        <div class="chart-title" style="margin-top:10px">So sánh 3 cách phân tích</div>
+        <table class="cmp"><thead><tr><th>Cách</th><th>Cả chuyến giống</th><th>Bất thường</th></tr></thead><tbody id="cmpBody"></tbody></table>
+        <details>
+          <summary>Kết luận được tính thế nào?</summary>
+          <p style="margin-top:6px; line-height:1.5">Chuyến đi được chia thành các đoạn 5 giây. Với mỗi đoạn, AI cho biết đoạn đó giống
+            kiểu lái nào nhất. Có 3 cách: chỉ dùng <b>cảm biến chuyển động</b>, chỉ dùng <b>video</b>, hoặc <b>kết hợp</b> cả hai.
+            Nếu tổng thời gian lái hung hăng và buồn ngủ dưới 15% thì <b>Lái xe ổn định</b>, từ 15% đến dưới 40% thì
+            <b>Cần chú ý</b>, từ 40% trở lên thì <b>Cần kiểm tra kỹ</b>.</p>
+        </details>
+        <div class="note">Kết quả do AI tạo ra, chỉ để tham khảo. Nhân viên cần xem lại các đoạn được đánh dấu trước khi kết luận về tài xế.</div>
+      </div>
+    </div>
+
+    <!-- ================= CỘT GIỮA ================= -->
+    <div class="col">
+      <div class="panel">
+        <div class="ph"><span>Xem kết quả theo</span></div>
+        <div class="seg" id="modelSeg">
+          <button data-m="fusion" disabled>Kết hợp video + cảm biến</button>
+          <button data-m="video" disabled>Chỉ video</button>
+          <button data-m="sensor" disabled>Chỉ cảm biến</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="ph"><span>Video hành trình</span><small id="videoTime"></small></div>
+        <div class="video-box" id="videoBox" oncontextmenu="return false">
+          <div style="font-size:30px">🎥</div>
+          <div class="hint">Chọn chuyến mẫu hoặc tải chuyến đi kèm video để xem khung hình tại thời điểm bạn chọn.</div>
+        </div>
+        <div class="strip" id="strip" oncontextmenu="return false"></div>
+        <div class="warn" id="videoWarn" hidden></div>
+      </div>
+
+      <div class="panel">
+        <div class="ph"><span>Diễn biến trong chuyến đi</span><small id="tlInfo">Bấm vào thanh để xem chi tiết từng thời điểm</small></div>
+        <div id="tlEmpty" class="empty">Chưa có chuyến đi nào được phân tích.</div>
+        <div id="tlBox" hidden>
+          <div class="timeline" id="timeline"></div>
+          <div class="ticks" id="ticks"></div>
+          <div class="legend">
+            <span><i style="background:var(--normal)"></i>Bình thường</span>
+            <span><i style="background:var(--aggr)"></i>Lái xe hung hăng</span>
+            <span><i style="background:var(--drowsy)"></i>Dấu hiệu buồn ngủ</span>
+            <span><i style="background:var(--invalid)"></i>Thiếu dữ liệu</span>
+            <span><i style="background:var(--none)"></i>Không có kết quả cho cách này</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="ph"><span>Các đoạn cần xem lại</span><small id="evCount"></small></div>
+        <div id="evEmpty" class="empty">Chưa có kết quả.</div>
+        <table class="ev" id="evTable" hidden>
+          <thead><tr><th>Thời điểm</th><th>Hành vi</th><th>Kéo dài</th><th>AI chắc chắn</th><th></th></tr></thead>
+          <tbody id="evBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ================= CỘT PHẢI ================= -->
+    <div class="col">
+      <div class="panel">
+        <div class="ph"><span>Chi tiết đoạn đang xem</span><small id="selTime"></small></div>
+        <div id="detEmpty" class="empty">Chọn một đoạn trong danh sách hoặc bấm vào thanh diễn biến.</div>
+        <div id="detBox" hidden>
+          <div class="chart-title">Tốc độ xe <small>(km/h)</small></div>
+          <svg class="chart" id="chSpeed" viewBox="0 0 420 120"></svg>
+          <div class="chart-title">Độ mạnh chuyển động của xe <small>(càng cao: phanh, tăng tốc, đánh lái hoặc xóc càng mạnh)</small></div>
+          <svg class="chart" id="chMotion" viewBox="0 0 420 120"></svg>
+          <div class="chart-title">Mức độ AI nghi ngờ <small>(đường gạch: ngưỡng đánh dấu 60%)</small></div>
+          <svg class="chart" id="chProb" viewBox="0 0 420 120"></svg>
+          <div class="legend" style="margin-top:0">
+            <span><i style="background:var(--aggr)"></i>Hung hăng</span>
+            <span><i style="background:var(--drowsy)"></i>Buồn ngủ</span>
+            <span><i style="background:rgba(59,130,246,.35)"></i>Đoạn đang xem</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="ph"><span>Gợi ý cho nhân viên kiểm tra</span></div>
+        <ul class="sugg" id="sugg"><li>Phân tích một chuyến đi để nhận gợi ý.</li></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const LABEL = { NORMAL: 'Bình thường', AGGRESSIVE: 'Lái xe hung hăng', DROWSY: 'Dấu hiệu buồn ngủ' };
+const COLOR = { NORMAL: '#22c55e', AGGRESSIVE: '#ef4444', DROWSY: '#eab308', INVALID: '#475569', NONE: '#2b3648' };
+const MODEL_NAME = { fusion: 'Kết hợp video + cảm biến', video: 'Chỉ video', sensor: 'Chỉ cảm biến' };
+const TEXT_EXT = ['.txt', '.csv'], VIDEO_EXT = ['.mp4', '.mov', '.avi', '.mkv', '.m4v'];
+const $ = id => document.getElementById(id);
+let LIMITS = { text_mb: 20, video_mb: 300 };
+let STATUS = null;
+let files = { acc: null, gps: null, vid: null, folder: '' };
+let R = null, M = 'sensor', selected = null, busy = false, sourceLabel = '';
+
+// ---------------- tiện ích ----------------
+function clock(sec) {
+  sec = Math.max(0, Math.round(sec));
+  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+  const mm = String(m).padStart(2, '0'), ss = String(s).padStart(2, '0');
+  return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+function duration(sec) {
+  sec = Math.round(sec);
+  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60;
+  if (h) return `${h} giờ ${m} phút`;
+  if (m) return s ? `${m} phút ${s} giây` : `${m} phút`;
+  return `${s} giây`;
+}
+const mb = b => (b / 1048576).toFixed(b < 10485760 ? 1 : 0) + ' MB';
+const ext = n => (n.match(/\.[^.]+$/) || [''])[0].toLowerCase();
+const rel = t => t - R.trip.start;
+function showError(msg) { $('errBox').textContent = msg; $('errBox').hidden = false; }
+function hideError() { $('errBox').hidden = true; }
+
+// ---------------- trạng thái máy chủ ----------------
+fetch('api/status').then(r => r.json()).then(s => {
+  STATUS = s; LIMITS = s.limits || LIMITS;
+  $('statusDot').className = 'dot ' + (s.ready ? 'ok' : 'bad');
+  $('statusText').textContent = s.ready ? 'Hệ thống sẵn sàng' : 'Chưa có model AI';
+  $('limitHint').textContent = `Giới hạn: file cảm biến/GPS tối đa ${LIMITS.text_mb} MB, video tối đa ${LIMITS.video_mb} MB.` +
+    (s.video ? '' : ' Máy chủ chưa có model video nên chỉ phân tích dữ liệu cảm biến.');
+  if (!s.ready) showError('Hệ thống chưa có model AI nên chưa phân tích được. Chi tiết: ' + s.message);
+  if (s.demo) {
+    $('demoPanel').hidden = false;
+    $('demoName').textContent = s.demo.title || s.demo.trip_name;
+    $('demoHint').textContent = `Dữ liệu cảm biến + video, ${duration(s.demo.duration || 0)}. ` +
+      (s.demo.reference ? `Chuyến này được ghi khi tài xế được yêu cầu lái "${s.demo.reference}". ` : '') +
+      'Tài xế này không có trong dữ liệu dùng để huấn luyện AI.';
+  }
+}).catch(() => { $('statusText').textContent = 'Không kết nối được máy chủ'; $('statusDot').className = 'dot bad'; });
+
+// ---------------- chọn file ----------------
+function checkFile(f, kind) {
+  if (!f) return null;
+  const e = ext(f.name);
+  if (kind === 'vid') {
+    if (!VIDEO_EXT.includes(e)) return 'không phải file video được hỗ trợ (.mp4)';
+    if (f.size > LIMITS.video_mb * 1048576) return `quá lớn (${mb(f.size)}, tối đa ${LIMITS.video_mb} MB)`;
+  } else {
+    if (VIDEO_EXT.includes(e)) return 'đây là file video, hãy chọn ở ô video';
+    if (!TEXT_EXT.includes(e)) return 'chỉ nhận file .txt';
+    if (f.size > LIMITS.text_mb * 1048576) return `quá lớn (${mb(f.size)}, tối đa ${LIMITS.text_mb} MB)`;
+  }
+  if (f.size === 0) return 'file trống';
+  return null;
+}
+function setFiles() {
+  const rows = [['acc', 'accState', 'Cảm biến chuyển động (bắt buộc)'], ['gps', 'gpsState', 'GPS (không bắt buộc)'],
+                ['vid', 'vidState', 'Video hành trình (không bắt buộc)']];
+  let ok = true;
+  for (const [k, id, label] of rows) {
+    const f = files[k], err = checkFile(f, k);
+    $(id).textContent = `• ${label}: ` + (f ? `${f.name} (${mb(f.size)})` + (err ? ` — ${err}` : '') : 'chưa có');
+    $(id).className = !f ? 'miss' : err ? 'bad' : 'ok';
+    if (err) ok = false;
+  }
+  $('runBtn').disabled = busy || !files.acc || !ok;
+}
+$('pickDir').addEventListener('change', e => {
+  const list = [...e.target.files];
+  const find = n => list.find(f => f.name.toUpperCase() === n);
+  files.acc = find('RAW_ACCELEROMETERS.TXT') || null;
+  files.gps = find('RAW_GPS.TXT') || null;
+  files.vid = list.find(f => VIDEO_EXT.includes(ext(f.name))) || null;
+  files.folder = list.length ? (list[0].webkitRelativePath || '').split('/')[0] : '';
+  const m = files.folder.match(/-(D\d)-/);
+  if (m && !$('driver').value) $('driver').value = m[1];
+  if (!files.acc) showError('Không thấy file RAW_ACCELEROMETERS.txt trong thư mục đã chọn.'); else hideError();
+  setFiles();
+});
+$('pickAcc').addEventListener('change', e => { files.acc = e.target.files[0] || null; files.folder = ''; hideError(); setFiles(); });
+$('pickGps').addEventListener('change', e => { files.gps = e.target.files[0] || null; setFiles(); });
+$('pickVid').addEventListener('change', e => { files.vid = e.target.files[0] || null; setFiles(); });
+
+// ---------------- gửi phân tích + theo dõi tiến độ ----------------
+function setBusy(b, text) {
+  busy = b;
+  $('progBox').hidden = !b; $('progText').textContent = text || '';
+  $('demoBtn').disabled = b;
+  setFiles();
+}
+async function postJob(url, body) {
+  let res;
+  try { res = await fetch(url, { method: 'POST', body }); }
+  catch (e) { throw new Error('Không gửi được dữ liệu lên máy chủ. Kiểm tra kết nối mạng rồi thử lại.'); }
+  let data = {};
+  try { data = await res.json(); } catch (e) { /* phản hồi không phải JSON */ }
+  if (!res.ok) {
+    if (res.status === 413 && !data.detail) throw new Error('Dữ liệu tải lên quá lớn.');
+    throw new Error(data.detail || `Máy chủ báo lỗi (${res.status}).`);
+  }
+  return data.job_id;
+}
+async function waitJob(jid) {
+  const t0 = Date.now();
+  let netFail = 0;
+  while (Date.now() - t0 < 20 * 60 * 1000) {
+    await new Promise(r => setTimeout(r, 1500));
+    let res, data;
+    try { res = await fetch('api/job/' + jid); data = await res.json(); netFail = 0; }
+    catch (e) { if (++netFail >= 5) throw new Error('Mất kết nối tới máy chủ khi đang phân tích.'); continue; }
+    if (!res.ok) throw new Error(data.detail || 'Không lấy được kết quả.');
+    if (data.status === 'done') return data.result;
+    if (data.status === 'error') throw new Error(data.error);
+    $('progText').textContent = data.status === 'queued'
+      ? `Đang chờ đến lượt (còn ${data.queue_position || 0} chuyến phía trước)…` : data.progress;
+  }
+  throw new Error('Phân tích quá lâu (hơn 20 phút). Hãy thử lại sau.');
+}
+async function runJob(url, body, label) {
+  hideError(); setBusy(true, 'Đang gửi dữ liệu…');
+  try {
+    const jid = await postJob(url, body);
+    const result = await waitJob(jid);
+    sourceLabel = label; R = result; render();
+  } catch (err) { showError(err.message); }
+  finally { setBusy(false); }
+}
+$('runBtn').addEventListener('click', () => {
+  const fd = new FormData();
+  fd.append('acc_file', files.acc);
+  if (files.gps) fd.append('gps_file', files.gps);
+  if (files.vid) fd.append('video_file', files.vid);
+  fd.append('trip_name', files.folder || '');
+  runJob('api/analyze', fd, files.folder || files.acc.name);
+});
+$('demoBtn').addEventListener('click', () => runJob('api/demo', null, 'demo'));
+document.querySelectorAll('#modelSeg button').forEach(b => b.addEventListener('click', () => { M = b.dataset.m; renderModel(); }));
+
+// ---------------- hiển thị ----------------
+function render() {
+  const T = R.trip, demo = R.demo && STATUS && STATUS.demo;
+  $('tripPanel').hidden = false; $('resultPanel').hidden = false;
+  $('tripName').textContent = demo ? `Chuyến mẫu: ${STATUS.demo.trip_name}` : sourceLabel;
+  $('iDriver').textContent = demo ? (STATUS.demo.driver || '—') : ($('driver').value.trim() || '—');
+  $('iPlate').textContent = demo ? '—' : ($('plate').value.trim() || '—');
+  $('iDur').textContent = duration(T.duration);
+  $('iDist').textContent = T.distance_km != null ? T.distance_km.toFixed(1) + ' km' : 'Cần file GPS';
+  $('iSpeed').textContent = T.max_speed != null ? Math.round(T.max_speed) + ' km/h' : 'Cần file GPS';
+  const sens = R.models.sensor;
+  $('iCover').textContent = `${Math.round(sens.analysed_seconds / T.duration * 100)}% chuyến`;
+  const refBeh = demo ? STATUS.demo.behavior : ((sourceLabel || '').match(/-(NORMAL|AGGRESSIVE|DROWSY)\d?-/) || [])[1];
+  $('refLabel').hidden = !refBeh;
+  if (refBeh) $('refLabel').textContent = `Dữ liệu thử nghiệm: chuyến này được ghi khi tài xế được yêu cầu lái "${LABEL[refBeh]}". Dùng để đối chiếu với kết luận của AI.`;
+
+  // so sánh 3 cách
+  $('cmpBody').innerHTML = '';
+  for (const m of ['fusion', 'video', 'sensor']) {
+    const s = R.models[m];
+    const tr = document.createElement('tr');
+    tr.innerHTML = s ? `<td>${MODEL_NAME[m]}</td><td style="color:${COLOR[s.trip_label]};font-weight:700">${LABEL[s.trip_label]}</td>
+      <td>${Math.round((s.share.AGGRESSIVE + s.share.DROWSY) * 100)}%</td>` : `<td>${MODEL_NAME[m]}</td><td colspan="2" style="color:var(--muted)">Không có</td>`;
+    $('cmpBody').appendChild(tr);
+  }
+  document.querySelectorAll('#modelSeg button').forEach(b => { b.disabled = !R.models[b.dataset.m]; });
+  M = ['fusion', 'video', 'sensor'].find(m => R.models[m]);
+
+  // video
+  const V = R.video || {};
+  $('videoWarn').hidden = !V.message || V.status === 'ok' && !R.demo;
+  $('videoWarn').textContent = V.message || '';
+  renderModel();
+}
+
+function renderModel() {
+  const S = R.models[M], T = R.trip;
+  document.querySelectorAll('#modelSeg button').forEach(b => b.classList.toggle('on', b.dataset.m === M));
+  $('modelName').textContent = MODEL_NAME[M];
+  const abn = S.share.AGGRESSIVE + S.share.DROWSY;
+  const v = abn < 0.15 ? ['Lái xe ổn định', COLOR.NORMAL] : abn < 0.4 ? ['Cần chú ý', COLOR.DROWSY] : ['Cần kiểm tra kỹ', COLOR.AGGRESSIVE];
+  $('vBadge').textContent = v[0];
+  $('vBadge').style.cssText = `color:${v[1]}; border:2px solid ${v[1]}; background:${v[1]}22`;
+  const nA = S.events.filter(e => e.label === 'AGGRESSIVE').length, nD = S.events.filter(e => e.label === 'DROWSY').length;
+  const parts = [];
+  if (nA) parts.push(`<b>${nA}</b> đoạn lái hung hăng`);
+  if (nD) parts.push(`<b>${nD}</b> đoạn có dấu hiệu buồn ngủ`);
+  $('vText').innerHTML = (parts.length ? 'Phát hiện ' + parts.join(' và ') + '.' : 'Không phát hiện đoạn bất thường đáng kể.') +
+    `<br>Cả chuyến giống nhất với kiểu lái: <b>${LABEL[S.trip_label]}</b>.` +
+    (S.analysed_seconds < R.models.sensor.analysed_seconds * 0.95 ? `<br><span style="color:var(--muted)">Cách này phân tích được ${duration(S.analysed_seconds)} của chuyến.</span>` : '');
+  $('bars').innerHTML = '';
+  for (const c of ['NORMAL', 'AGGRESSIVE', 'DROWSY']) {
+    const pct = (S.share[c] * 100).toFixed(1);
+    $('bars').insertAdjacentHTML('beforeend', `<div class="bar-row"><div class="bar-label">
+      <span style="color:${COLOR[c]}">${LABEL[c]} · ${duration(S.seconds[c])}</span><span>${pct}%</span></div>
+      <div class="bar-bg"><div class="bar-fg" style="width:${pct}%; background:${COLOR[c]}"></div></div></div>`);
+  }
+  renderTimeline(); renderEvents(); renderSuggestions();
+  if (S.events.length) select(S.events[0].t_start, S.events[0].t_end, 0);
+  else { const w = R.windows.find(w => w[M]); select(w.t_start, w.t_end, null); }
+}
+
+function renderTimeline() {
+  const T = R.trip, D = T.duration, tl = $('timeline');
+  $('tlEmpty').hidden = true; $('tlBox').hidden = false;
+  tl.innerHTML = '';
+  for (const w of R.windows) {
+    const d = document.createElement('div');
+    d.className = 'seg2';
+    d.style.left = (rel(w.t_start) / D * 100) + '%';
+    d.style.width = Math.max((w.t_end - w.t_start) / D * 100, 0.15) + '%';
+    const r = w[M];
+    d.style.background = !w.valid ? COLOR.INVALID : r ? COLOR[r.label] : COLOR.NONE;
+    d.title = `${clock(rel(w.t_start))}: ` + (!w.valid ? 'Thiếu dữ liệu (' + w.reason + ')' : r ? LABEL[r.label] : 'Không có kết quả cho cách này');
+    tl.appendChild(d);
+  }
+  const cur = document.createElement('div'); cur.className = 'cursor'; cur.id = 'cursor'; tl.appendChild(cur);
+  $('ticks').innerHTML = [0, .25, .5, .75, 1].map(f => `<span>${clock(D * f)}</span>`).join('');
+  tl.onclick = e => {
+    const box = tl.getBoundingClientRect();
+    const t = T.start + (e.clientX - box.left) / box.width * D;
+    const w = R.windows.reduce((a, b) => Math.abs((b.t_start + b.t_end) / 2 - t) < Math.abs((a.t_start + a.t_end) / 2 - t) ? b : a);
+    const evs = R.models[M].events, ei = evs.findIndex(ev => t >= ev.t_start && t <= ev.t_end);
+    if (ei >= 0) select(evs[ei].t_start, evs[ei].t_end, ei); else select(w.t_start, w.t_end, null);
+  };
+}
+
+function renderEvents() {
+  const evs = R.models[M].events, body = $('evBody'); body.innerHTML = '';
+  $('evCount').textContent = evs.length ? `${evs.length} đoạn` : '';
+  $('evEmpty').hidden = evs.length > 0;
+  $('evEmpty').textContent = 'Không có đoạn nào bất thường đáng kể.';
+  $('evTable').hidden = evs.length === 0;
+  evs.forEach((e, i) => {
+    const tr = document.createElement('tr'); tr.id = 'ev' + i;
+    tr.innerHTML = `<td style="font-weight:700; color:#38bdf8">${clock(rel(e.t_start))}</td>
+      <td style="font-weight:700; color:${COLOR[e.label]}">${LABEL[e.label]}</td>
+      <td>${duration(e.t_end - e.t_start)}</td>
+      <td><span class="lvl ${e.level}">${e.level === 'high' ? 'Cao' : 'Trung bình'}</span> ${Math.round(e.confidence * 100)}%</td>
+      <td><button class="btn-sm" id="evb${i}">Xem</button></td>`;
+    body.appendChild(tr);
+    $('evb' + i).onclick = () => select(e.t_start, e.t_end, i);
+  });
+}
+
+function renderSuggestions() {
+  const S = R.models[M], T = R.trip, ul = $('sugg'); ul.innerHTML = '';
+  const add = (cls, html) => ul.insertAdjacentHTML('beforeend', `<li class="${cls}">${html}</li>`);
+  const longest = lab => S.events.filter(e => e.label === lab).sort((a, b) => (b.t_end - b.t_start) - (a.t_end - a.t_start))[0];
+  const evA = S.events.filter(e => e.label === 'AGGRESSIVE'), evD = S.events.filter(e => e.label === 'DROWSY');
+  if (!S.events.length) add('green', 'Chuyến đi không có đoạn bất thường đáng kể. Không cần xử lý thêm.');
+  if (evA.length) { const l = longest('AGGRESSIVE');
+    add('red', `Xem lại <b>${evA.length}</b> đoạn lái hung hăng. Đoạn dài nhất lúc <b>${clock(rel(l.t_start))}</b>, kéo dài ${duration(l.t_end - l.t_start)}.`); }
+  if (evD.length) { const l = longest('DROWSY');
+    add('amber', `Xem lại <b>${evD.length}</b> đoạn có dấu hiệu buồn ngủ. Đoạn dài nhất lúc <b>${clock(rel(l.t_start))}</b>, kéo dài ${duration(l.t_end - l.t_start)}. Nếu đúng, nhắc tài xế nghỉ ngơi đủ trước ca lái.`); }
+  if (S.share.AGGRESSIVE + S.share.DROWSY >= 0.4) add('red', 'Tỉ lệ thời gian lái bất thường cao. Nên trao đổi trực tiếp với tài xế về chuyến đi này.');
+  const labels = ['fusion', 'video', 'sensor'].filter(m => R.models[m]).map(m => R.models[m].trip_label);
+  if (new Set(labels).size > 1) add('', 'Các cách phân tích cho kết luận khác nhau. Nên xem trực tiếp khung hình video ở các đoạn được đánh dấu.');
+  const miss = 1 - R.models.sensor.analysed_seconds / T.duration;
+  if (miss > 0.2) add('', `Khoảng ${Math.round(miss * 100)}% chuyến đi thiếu dữ liệu cảm biến nên chưa được phân tích. Kết quả có thể chưa đầy đủ.`);
+  add('', 'Kết quả AI chỉ để tham khảo. Hãy xem lại từng đoạn trước khi đưa ra kết luận về tài xế.');
+}
+
+// ---------------- chọn một đoạn ----------------
+function select(t0, t1, ei) {
+  selected = { t0, t1, ei };
+  const T = R.trip, c = $('cursor');
+  c.style.left = (rel(t0) / T.duration * 100) + '%';
+  c.style.width = Math.max((t1 - t0) / T.duration * 100, 0.4) + '%';
+  document.querySelectorAll('#evBody tr').forEach(tr => tr.classList.remove('sel'));
+  document.querySelectorAll('#evBody .btn-sm').forEach(b => { b.classList.remove('on'); b.textContent = 'Xem'; });
+  if (ei != null && $('ev' + ei)) { $('ev' + ei).classList.add('sel'); $('evb' + ei).classList.add('on'); $('evb' + ei).textContent = 'Đang xem'; }
+  const label = `${clock(rel(t0))} – ${clock(rel(t1))}`;
+  $('selTime').textContent = label; $('videoTime').textContent = 'Thời điểm: ' + label;
+  $('tlInfo').textContent = 'Đang xem: ' + label;
+  renderVideo(t0, t1); renderDetail(t0, t1);
+}
+
+function renderVideo(t0, t1) {
+  const box = $('videoBox'), strip = $('strip');
+  strip.innerHTML = '';
+  const withThumb = R.windows.filter(w => w.thumb != null);
+  if (!withThumb.length) {
+    box.innerHTML = `<div style="font-size:30px">🎥</div><div class="hint">${R.video && R.video.status !== 'none'
+      ? 'Không có khung hình video cho chuyến này.' : 'Chuyến này không có video. Tải kèm file video để xem khung hình.'}</div>`;
+    return;
+  }
+  const mid = (t0 + t1) / 2;
+  let k = 0;
+  withThumb.forEach((w, i) => { if (Math.abs((w.t_start + w.t_end) / 2 - mid) < Math.abs((withThumb[k].t_start + withThumb[k].t_end) / 2 - mid)) k = i; });
+  const w = withThumb[k], far = Math.abs((w.t_start + w.t_end) / 2 - mid) > 10;
+  box.innerHTML = '';
+  const img = document.createElement('img');
+  img.src = 'data:image/jpeg;base64,' + R.thumbs[w.thumb]; img.draggable = false; img.alt = 'Khung hình video';
+  box.appendChild(img);
+  const cap = document.createElement('div'); cap.className = 'hint';
+  cap.textContent = `Khung hình giữa đoạn ${clock(rel(w.t_start))} – ${clock(rel(w.t_end))}` +
+    (far ? ' (đoạn gần nhất có video)' : '');
+  box.appendChild(cap);
+  for (let i = Math.max(0, k - 3); i <= Math.min(withThumb.length - 1, k + 3); i++) {
+    const ww = withThumb[i], d = document.createElement('div');
+    if (i === k) d.className = 'on';
+    const im = document.createElement('img'); im.src = 'data:image/jpeg;base64,' + R.thumbs[ww.thumb]; im.draggable = false;
+    d.appendChild(im); d.appendChild(document.createTextNode(clock(rel(ww.t_start))));
+    d.onclick = () => select(ww.t_start, ww.t_end, null);
+    strip.appendChild(d);
+  }
+}
+
+// ---------------- biểu đồ SVG đơn giản ----------------
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; }
+function chart(svg, { x0, x1, y0, y1, band, lines, yTicks, yFmt, dashed }) {
+  svg.innerHTML = '';
+  const L = 40, Rr = 412, Tp = 6, B = 96;
+  const X = t => L + (t - x0) / (x1 - x0) * (Rr - L), Y = v => B - (Math.min(Math.max(v, y0), y1) - y0) / (y1 - y0) * (B - Tp);
+  el('rect', { x: L, y: Tp, width: Rr - L, height: B - Tp, fill: '#090d16', stroke: '#334155' }, svg);
+  el('rect', { x: X(band[0]), y: Tp, width: Math.max(X(band[1]) - X(band[0]), 2), height: B - Tp, fill: 'rgba(59,130,246,.25)' }, svg);
+  for (const v of yTicks) {
+    el('line', { x1: L, x2: Rr, y1: Y(v), y2: Y(v), stroke: '#1e293b', 'stroke-dasharray': '3,3' }, svg);
+    el('text', { x: L - 4, y: Y(v) + 3.5, 'text-anchor': 'end', fill: '#94a3b8', 'font-size': 10 }, svg).textContent = yFmt(v);
+  }
+  if (dashed != null) el('line', { x1: L, x2: Rr, y1: Y(dashed), y2: Y(dashed), stroke: '#93c5fd', 'stroke-dasharray': '5,4' }, svg);
+  for (const ln of lines) {
+    if (!ln.pts.length) continue;
+    el('path', { d: ln.pts.map((p, i) => (p[2] ? 'M' : (i ? 'L' : 'M')) + X(p[0]).toFixed(1) + ',' + Y(p[1]).toFixed(1)).join(' '),
+                 fill: 'none', stroke: ln.color, 'stroke-width': 1.8 }, svg);
+  }
+  for (const f of [0, .5, 1]) {
+    const t = x0 + (x1 - x0) * f;
+    el('text', { x: X(t), y: 112, 'text-anchor': f === 0 ? 'start' : f === 1 ? 'end' : 'middle', fill: '#94a3b8', 'font-size': 10 }, svg).textContent = clock(rel(t));
+  }
+}
+function slice(ts, vs, a, b) { const out = []; for (let i = 0; i < ts.length; i++) if (ts[i] >= a && ts[i] <= b) out.push([ts[i], vs[i]]); return out; }
+function niceMax(v) { if (v <= 0) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); return Math.ceil(v / p * 1.1) * p; }
+
+function renderDetail(t0, t1) {
+  $('detEmpty').hidden = true; $('detBox').hidden = false;
+  const T = R.trip, S = R.series;
+  const pad = Math.max(30, (t1 - t0) * 0.5);
+  const x0 = Math.max(T.start, t0 - pad), x1 = Math.min(T.end, t1 + pad), band = [t0, t1];
+  if (S.speed) {
+    const pts = slice(S.gps_t, S.speed, x0, x1);
+    const top = niceMax(Math.max(10, ...pts.map(p => p[1])));
+    chart($('chSpeed'), { x0, x1, y0: 0, y1: top, band, lines: [{ pts, color: '#38bdf8' }], yTicks: [0, top / 2, top], yFmt: v => Math.round(v) });
+  } else {
+    $('chSpeed').innerHTML = '<text x="210" y="60" text-anchor="middle" fill="#94a3b8" font-size="12">Cần file GPS để hiện tốc độ</text>';
+  }
+  const mpts = slice(S.t, S.motion, x0, x1);
+  const mtop = niceMax(Math.max(0.05, ...mpts.map(p => p[1])));
+  chart($('chMotion'), { x0, x1, y0: 0, y1: mtop, band, lines: [{ pts: mpts, color: '#a78bfa' }], yTicks: [0, mtop / 2, mtop], yFmt: v => v.toFixed(2) + 'g' });
+  // đường bậc thang theo từng đoạn; ngắt nét ở đoạn không có kết quả
+  const wins = R.windows.filter(w => w.t_end >= x0 && w.t_start <= x1);
+  const step = idx => { const pts = []; let gap = true;
+    for (const w of wins) { const r = w[M]; if (!r) { gap = true; continue; }
+      pts.push([w.t_start, r.probs[idx], gap]); pts.push([w.t_end, r.probs[idx], false]); gap = false; } return pts; };
+  chart($('chProb'), { x0, x1, y0: 0, y1: 1, band, dashed: 0.6, lines: [{ pts: step(1), color: COLOR.AGGRESSIVE }, { pts: step(2), color: COLOR.DROWSY }],
+                       yTicks: [0, 0.5, 1], yFmt: v => Math.round(v * 100) + '%' });
+}
+</script>
+</body>
+</html>
