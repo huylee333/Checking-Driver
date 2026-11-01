@@ -1,0 +1,100 @@
+name: cd
+
+# CD = Continuous Delivery: build the image and PUBLISH it on Docker Hub (public).
+#
+#   push to main      -> tags: latest and sha-<7 characters of the commit>
+#   push of tag v1.2.3 -> tags: 1.2.3 and sha-<...>
+#   manual run        -> GitHub > Actions > cd > Run workflow
+#
+# main is protected (pull request + passing "lint and test" required), so every commit that reaches main
+# has already been checked by ci.yml. This workflow does not run the tests again; it only publishes.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+# Publish one at a time, never cancel a publish that is already running.
+concurrency:
+  group: cd
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_NAME: checking-driver
+
+jobs:
+  publish:
+    name: build and publish to Docker Hub
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOKERHUB_TOKEN }}
+
+      - name: Work out the image name, tags and labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,format=short
+            type=semver,pattern={{version}}
+
+      - name: Build the image and push it
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: web
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Check the published image (pull it back from Docker Hub and start it)
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          image="$DOCKER_USERNAME/$IMAGE_NAME@$DIGEST"
+          docker pull "$image"
+          docker run -d --name published -p 7860:7860 "$image"
+          code=000
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:7860/ || true)
+            [ "$code" = "200" ] && break
+            sleep 2
+          done
+          echo "published image: GET / -> HTTP $code"
+          test "$code" = "200"
+
+      - name: Summary
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          {
+            echo "### Published to Docker Hub"
+            echo ""
+            echo "- digest: \`$DIGEST\`"
+            echo "- commit: \`${GITHUB_SHA::7}\`"
+            echo "- ref: \`$GITHUB_REF_NAME\`"
+            echo ""
+            echo "Pull with: \`docker pull <docker-hub-name>/$IMAGE_NAME:latest\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Show the container log if something failed
+        if: failure()
+        run: docker logs published || true
