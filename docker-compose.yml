@@ -1,0 +1,35 @@
+# Docker Compose: describes HOW to run the project in one file, so a single command replaces a long
+# `docker run ...` line.
+#
+#   Start (build the image if needed) : docker compose up --build
+#   Start in the background           : docker compose up -d --build
+#   Follow the log                    : docker compose logs -f
+#   Stop and remove the container     : docker compose down
+#   Also delete the downloaded weights: docker compose down -v
+#
+# Then open http://localhost:7860
+#
+# Why only ONE service: the web app is a single self-contained process (API + web page + model
+# inference in one Python program, jobs kept in memory, no database, no external queue).
+# It cannot simply be copied into several containers: see the CI/CD report, step 2.11.
+services:
+  web:
+    build:
+      context: ./web                  # the folder that contains the Dockerfile
+    image: checking-driver:dev        # name given to the image that is built
+    # To use the published image instead of building, replace the two lines above by:
+    #   image: <your-docker-hub-name>/checking-driver:latest
+    ports:
+      - "7860:7860"                   # host port : container port
+    env_file:
+      - path: ./web/.env.local        # holds HF_TOKEN=... (never committed, never copied into the image)
+        required: false               # without it the web still starts, just without the model
+    volumes:
+      # Keep the ~1.6 GB of downloaded weights between runs, so only the first start is slow.
+      - weights:/home/user/app/weights
+      - demo:/home/user/app/demo
+    restart: unless-stopped           # start again after a crash or a reboot, unless stopped by hand
+
+volumes:
+  weights:
+  demo:
