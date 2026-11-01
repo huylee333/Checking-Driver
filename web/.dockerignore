@@ -1,0 +1,31 @@
+# Files that must NEVER be copied into the image.
+# `docker build` sends the folder on the build machine, including files that .gitignore hides,
+# so this list is a separate line of defence.
+#
+# IMPORTANT: unlike .gitignore, a pattern here is matched from the root of the build folder only.
+# "*.pkl" would hide ./a.pkl but NOT ./sub/a.pkl. Use the "**/" prefix to match at any depth.
+# (A deliberate test with fake files in a sub-folder caught this mistake; see the CI/CD report, step 2.4.)
+
+# Private data and secrets, at any depth
+**/weights/
+**/demo/
+**/.env
+**/.env.*
+**/*.pth
+**/*.pt
+**/*.pkl
+**/*.npz
+**/*.mp4
+**/RAW_*
+
+# Not needed at run time
+tests/
+tools/
+requirements-dev.txt
+ruff.toml
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+.ruff_cache/
+.git/
+.venv/
