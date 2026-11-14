@@ -6,9 +6,9 @@ words, and the token must never appear in the log or in an answer.
 """
 import json
 import os
+import urllib.error
 
 import pytest
-import requests
 from fastapi.testclient import TestClient
 
 import app as web
@@ -42,11 +42,13 @@ def hub(monkeypatch, tmp_path):
     return fake
 
 
+# Standard-library exceptions only: the CI environment does not have `requests`, and the app catches any Exception.
+URL = 'https://huggingface.co/api/models/x'
 ERRORS = {
-    'wrong token (401)': requests.HTTPError('401 Client Error: Unauthorized for url: https://huggingface.co/api/models/x'),
-    'repo not found (404)': requests.HTTPError('404 Client Error: Repository Not Found for url: https://huggingface.co/api/models/x'),
-    'timeout': requests.ConnectTimeout('Connection to huggingface.co timed out'),
-    'no network': requests.ConnectionError('Failed to resolve huggingface.co'),
+    'wrong token (401)': urllib.error.HTTPError(URL, 401, 'Unauthorized', {}, None),
+    'repo not found (404)': urllib.error.HTTPError(URL, 404, 'Repository Not Found', {}, None),
+    'timeout': TimeoutError('Connection to huggingface.co timed out'),
+    'no network': ConnectionError('Failed to resolve huggingface.co'),
     'disk full': OSError(28, 'No space left on device'),
 }
 
