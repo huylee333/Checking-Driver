@@ -19,6 +19,10 @@ WORKDIR /home/user/app
 
 # Layer 1: libraries. They change rarely, so they come first and Docker reuses this cached layer
 # whenever only the code changes.
+# pip/setuptools are upgraded first: the python:3.11-slim base image ships old copies with known CVEs
+# (malicious-archive path traversal during install). Nothing in this image installs packages at
+# runtime, so the exposure is small, but upgrading costs nothing and removes it from the audit.
+RUN pip install --user --upgrade 'pip>=26.2' 'setuptools>=84.1'
 COPY --chown=user requirements.txt requirements-docker.txt ./
 RUN pip install --user -r requirements-docker.txt
 
