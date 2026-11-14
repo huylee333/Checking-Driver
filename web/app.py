@@ -49,6 +49,13 @@ VIDEO_EXT = {'.mp4', '.mov', '.avi', '.mkv', '.m4v'}
 MAX_PENDING = 3          # số yêu cầu tối đa đang chờ + đang chạy
 JOB_TTL_SEC = 1800       # kết quả giữ trong 30 phút
 
+# `_submit()` chỉ đếm job đã vào hàng đợi, nhưng việc đọc hết file vào bộ nhớ (`_read_text`, `load_sensors`)
+# xảy ra TRƯỚC bước đó. Nếu không chặn ở đây, số yêu cầu đang đọc file cùng lúc không bị giới hạn: gửi
+# nhiều yêu cầu có file gần giới hạn (20 MB) cùng lúc có thể làm máy chủ hết RAM dù mỗi yêu cầu riêng lẻ
+# đều hợp lệ (tìm thấy khi thử tấn công DoS - A03 - xem CHECKPOINT_TEST_VA_TAN_CONG.md). Dùng semaphore
+# không chờ: xin chỗ thất bại là 429 ngay, không chờ, không đọc byte nào của file.
+UPLOAD_SLOTS = threading.Semaphore(MAX_PENDING)
+
 
 def _fetch_demo():
     """Tải chuyến mẫu từ dataset private (cần secret HF_TOKEN trên Space). Lỗi thì web vẫn chạy, chỉ tắt nút demo."""
@@ -233,27 +240,32 @@ async def analyze(acc_file: UploadFile = File(...),
                   trip_name: str = Form('')):
     if not analyzer.ready:
         raise HTTPException(503, 'Hệ thống chưa có model. ' + (analyzer.error or ''))
-    acc = await _read_text(acc_file, 'File cảm biến chuyển động')
-    gps = await _read_text(gps_file, 'File GPS') if gps_file is not None and gps_file.filename else None
+    if not UPLOAD_SLOTS.acquire(blocking=False):
+        raise HTTPException(429, 'Hệ thống đang bận phân tích các chuyến khác. Vui lòng thử lại sau vài phút.')
     try:
-        sens = await run_in_threadpool(load_sensors, acc, gps)
-    except InputError as e:
-        raise HTTPException(400, str(e))
-    tmp, video = None, None
-    if video_file is not None and video_file.filename:
-        tmp = tempfile.mkdtemp(prefix='trip_')
+        acc = await _read_text(acc_file, 'File cảm biến chuyển động')
+        gps = await _read_text(gps_file, 'File GPS') if gps_file is not None and gps_file.filename else None
         try:
-            path = await _save_video(video_file, tmp)
-        except Exception:
-            shutil.rmtree(tmp, ignore_errors=True)
+            sens = await run_in_threadpool(load_sensors, acc, gps)
+        except InputError as e:
+            raise HTTPException(400, str(e))
+        tmp, video = None, None
+        if video_file is not None and video_file.filename:
+            tmp = tempfile.mkdtemp(prefix='trip_')
+            try:
+                path = await _save_video(video_file, tmp)
+            except Exception:
+                shutil.rmtree(tmp, ignore_errors=True)
+                raise
+            video = dict(path=path, trip_name=trip_name, video_name=video_file.filename)
+        try:
+            return _submit('upload', sens=sens, video=video, tmp=tmp)
+        except HTTPException:
+            if tmp:
+                shutil.rmtree(tmp, ignore_errors=True)
             raise
-        video = dict(path=path, trip_name=trip_name, video_name=video_file.filename)
-    try:
-        return _submit('upload', sens=sens, video=video, tmp=tmp)
-    except HTTPException:
-        if tmp:
-            shutil.rmtree(tmp, ignore_errors=True)
-        raise
+    finally:
+        UPLOAD_SLOTS.release()
 
 
 @app.post('/api/demo')

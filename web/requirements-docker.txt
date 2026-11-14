@@ -1,5 +1,9 @@
 -r requirements.txt
-fastapi
-uvicorn
-python-multipart
-huggingface_hub
+# Pinned here (not in requirements.txt): this file is only for Docker/CI, not the Hugging Face Space, so it
+# does not need to match the Space's Python 3.10. Pinning means a build next month installs the exact same
+# code we tested, instead of silently picking up whatever the newest release happens to be that day.
+numpy==2.4.6
+fastapi==0.162.7
+uvicorn==0.54.0
+python-multipart==0.0.33
+huggingface_hub==2.4.0
