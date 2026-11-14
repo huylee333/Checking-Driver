@@ -166,6 +166,15 @@ class Analyzer:
         self.error = None
         self.model_1d = self.video = self.fusion = None
         self.demo = None
+        try:
+            self._load(weights_dir, demo_dir)
+        except Exception as e:
+            # File hỏng hoặc tải dở: web vẫn phải mở được (nếu không container sẽ khởi động lại mãi).
+            print(f'[weights] không nạp được model: {e!r}')
+            self.model_1d = self.video = self.fusion = self.demo = None
+            self.error = f'Không nạp được model ({type(e).__name__}). File model có thể bị hỏng hoặc tải chưa xong.'
+
+    def _load(self, weights_dir, demo_dir):
         w = lambda f: os.path.join(weights_dir, f)
         if not (os.path.isfile(w('final_1d.pth')) and os.path.isfile(w('kine_norm_stats.json'))):
             self.error = f'Chưa có model: cần {w("final_1d.pth")} và {w("kine_norm_stats.json")}'
